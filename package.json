@@ -2,28 +2,36 @@
 	"name": "zolp",
 	"private": true,
 	"version": "0.0.0",
-	"type": "module",
 	"scripts": {
 		"check": "npx @biomejs/biome check --write",
 		"dev": "vite --port 3000",
-		"build": "tsc -b && vite build"
+		"build": "tsc -b && vite build",
+		"build:worker": "textlint-script-compiler --output-dir ./public --metadataName 'zolp' --metadataNamespace 'http://localhost:3000/' --metadataHomepage 'http://localhost:3000/'"
 	},
+	"type": "module",
 	"dependencies": {
 		"@contentful/app-sdk": "^4.41.1",
 		"@lexical/react": "^0.35.0",
 		"@tailwindcss/vite": "^4.1.13",
-		"@textlint/kernel": "^15.2.2",
 		"lexical": "^0.35.0",
+		"path-browserify": "^1.0.1",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",
-		"tailwindcss": "^4.1.13"
+		"tailwindcss": "^4.1.13",
+		"util": "^0.12.5"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.2",
+		"@textlint/script-compiler": "^0.18.0",
+		"@textlint/textlint-plugin-markdown": "^15.2.2",
 		"@types/react": "^19.1.10",
 		"@types/react-dom": "^19.1.7",
 		"@vitejs/plugin-react": "^5.0.0",
 		"globals": "^16.3.0",
+		"textlint-rule-ja-no-successive-word": "^2.0.1",
+		"textlint-rule-no-doubled-joshi": "^5.1.0",
+		"textlint-rule-no-dropping-the-ra": "^3.0.0",
+		"textlint-rule-prefer-tari-tari": "^1.0.3",
 		"typescript": "~5.8.3",
 		"vite": "^7.1.2"
 	}

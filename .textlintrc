@@ -1,0 +1,8 @@
+{
+  "plugins": [
+    "@textlint/markdown"
+  ],
+  "rules": {
+    "no-dropping-the-ra": true
+  }
+}

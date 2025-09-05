@@ -10,6 +10,7 @@ import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
+import { TextlintPlugin } from "./TextlintPlugin";
 
 const theme = {
 	heading: {
@@ -68,6 +69,7 @@ export const Editor = () => {
 				<HistoryPlugin />
 				<AutoFocusPlugin />
 				<MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+				<TextlintPlugin />
 			</LexicalComposer>
 		</div>
 	);
