@@ -77,7 +77,7 @@ export const TextlintPlugin = () => {
 									if (startIndex < nodeEnd && endIndex > nodeStart) {
 										// 該当範囲にスタイルを適用
 										textNode.setStyle(
-											'background-color: #fef2f2; border-bottom: 2px solid #ef4444; color: #dc2626;',
+											'border-bottom: 1px solid #ef4444; color: #dc2626;',
 										)
 									}
 									currentIndex = nodeEnd
