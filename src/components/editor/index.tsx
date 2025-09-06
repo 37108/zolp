@@ -13,24 +13,6 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text'
 import { TextlintErrorNode } from './TextlintErrorNode'
 import { TextlintPlugin } from './TextlintPlugin'
 
-const theme = {
-	heading: {
-		h1: 'text-3xl font-bold mb-4',
-		h2: 'text-2xl font-bold mb-3',
-		h3: 'text-xl font-bold mb-2',
-	},
-	quote: 'border-l-4 border-gray-300 pl-4 italic text-gray-600',
-	list: {
-		ul: 'list-disc ml-6 mb-4',
-		ol: 'list-decimal ml-6 mb-4',
-	},
-	code: 'bg-gray-100 px-2 py-1 rounded font-mono text-sm',
-	codeHighlight: {
-		code: 'bg-gray-900 text-white p-4 rounded-lg font-mono text-sm overflow-x-auto',
-	},
-	link: 'text-blue-600 underline hover:text-blue-800',
-}
-
 export const onError = (error: Error) => {
 	console.error(error)
 }
@@ -38,7 +20,7 @@ export const onError = (error: Error) => {
 export const Editor = () => {
 	const initialConfig = {
 		namespace: 'MyEditor',
-		theme,
+		theme: {},
 		onError,
 		nodes: [
 			HeadingNode,
@@ -58,7 +40,7 @@ export const Editor = () => {
 				<div className="relative border border-gray-200 rounded-lg shadow-sm">
 					<RichTextPlugin
 						contentEditable={
-							<ContentEditable className="min-h-96 p-4 outline-none prose prose-lg max-w-none" />
+							<ContentEditable className="znc min-h-96 p-4 outline-none prose prose-lg max-w-none" />
 						}
 						placeholder={
 							<div className="absolute top-4 left-4 text-gray-400 pointer-events-none">

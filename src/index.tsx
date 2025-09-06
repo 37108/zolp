@@ -1,7 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './style.css'
 import { Editor } from './components/editor'
+import './style.css'
+//@ts-ignore
+import 'zenn-content-css'
 
 const container = document.getElementById('root')
 if (!container) throw new Error('Failed to find the root element')
