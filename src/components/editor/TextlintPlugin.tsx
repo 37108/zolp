@@ -6,7 +6,7 @@ import {
 	createCommand,
 	type LexicalCommand,
 } from 'lexical'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import z from 'zod'
 import textlintWorker from '/textlint-worker.js?url'
 
@@ -42,6 +42,7 @@ export const LINT_TEXT_COMMAND: LexicalCommand<string> = createCommand()
 
 export const TextlintPlugin = () => {
 	const [editor] = useLexicalComposerContext()
+	const [previous, setPrevious] = useState('')
 
 	worker.onmessage = (event: TextLintMessageEvent) => {
 		editor.update(() => {
@@ -100,7 +101,8 @@ export const TextlintPlugin = () => {
 				const root = $getRoot()
 				const text = root.getTextContent()
 
-				if (text.trim()) {
+				if (text !== previous && text.trim()) {
+					setPrevious(text)
 					worker.postMessage({ command: 'lint', text, ext: '.md' })
 				}
 			})
@@ -109,7 +111,7 @@ export const TextlintPlugin = () => {
 		return editor.registerUpdateListener(() => {
 			setTimeout(checkText, 500)
 		})
-	}, [editor])
+	}, [editor, previous])
 
 	return null
 }
