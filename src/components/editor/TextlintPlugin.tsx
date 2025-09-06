@@ -1,24 +1,23 @@
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
-	$createParagraphNode,
-	$createTextNode,
 	$getRoot,
-	COMMAND_PRIORITY_NORMAL,
+	$isElementNode,
+	$isTextNode,
 	createCommand,
 	type LexicalCommand,
-} from "lexical";
-import { useEffect } from "react";
-import z from "zod";
-import textlintWorker from "/textlint-worker.js?url";
+} from 'lexical'
+import { useEffect } from 'react'
+import z from 'zod'
+import textlintWorker from '/textlint-worker.js?url'
 
 const TextLintMessageEvent = z.object({
 	data: z.object({
-		command: z.enum(["lint:result"]),
+		command: z.enum(['lint:result']),
 		result: z.object({
 			filePath: z.string(),
 			messages: z.array(
 				z.object({
-					type: z.enum(["lint"]),
+					type: z.enum(['lint']),
 					ruleId: z.string(),
 					message: z.string(),
 					severity: z.number(),
@@ -34,54 +33,83 @@ const TextLintMessageEvent = z.object({
 			),
 		}),
 	}),
-});
-type TextLintMessageEvent = z.infer<typeof TextLintMessageEvent>;
+})
+type TextLintMessageEvent = z.infer<typeof TextLintMessageEvent>
 
-const worker = new Worker(textlintWorker);
+const worker = new Worker(textlintWorker)
 
-export const LINT_TEXT_COMMAND: LexicalCommand<string> = createCommand();
+export const LINT_TEXT_COMMAND: LexicalCommand<string> = createCommand()
 
 export const TextlintPlugin = () => {
-	const [editor] = useLexicalComposerContext();
+	const [editor] = useLexicalComposerContext()
 
 	worker.onmessage = (event: TextLintMessageEvent) => {
-		console.log(event);
 		editor.update(() => {
-			if (event.data.command === "lint:result") {
-				const { messages } = event.data.result;
+			if (event.data.command === 'lint:result') {
+				const { messages } = event.data.result
+				const root = $getRoot()
+
+				// 既存の警告マークを削除
+				root.getChildren().forEach((child) => {
+					if ($isElementNode(child)) {
+						child.getChildren().forEach((textNode) => {
+							if ($isTextNode(textNode)) {
+								textNode.setFormat(0)
+								textNode.setStyle('')
+							}
+						})
+					}
+				})
 
 				for (const message of messages) {
-					const root = $getRoot();
-					const paragraphNode = $createParagraphNode();
-					const textNode = $createTextNode(message.message);
+					const [startIndex, endIndex] = message.range
+
+					// テキストノードを見つけて範囲をマーク
+					let currentIndex = 0
+					root.getChildren().forEach((paragraph) => {
+						if ($isElementNode(paragraph)) {
+							paragraph.getChildren().forEach((textNode) => {
+								if ($isTextNode(textNode)) {
+									const nodeText = textNode.getTextContent()
+									const nodeStart = currentIndex
+									const nodeEnd = currentIndex + nodeText.length
+
+									if (startIndex < nodeEnd && endIndex > nodeStart) {
+										// 該当範囲にスタイルを適用
+										textNode.setStyle(
+											'background-color: #fef2f2; border-bottom: 2px solid #ef4444; color: #dc2626;',
+										)
+									}
+									currentIndex = nodeEnd
+								}
+							})
+							currentIndex++ // 改行文字分
+						}
+					})
 				}
 			}
-		});
-	};
+		})
+	}
 
 	useEffect(() => {
 		const checkText = () => {
 			editor.getEditorState().read(() => {
-				const root = $getRoot();
-				const text = root.getTextContent();
+				if (editor.isComposing() === true) {
+					return
+				}
+				const root = $getRoot()
+				const text = root.getTextContent()
 
 				if (text.trim()) {
-					worker.postMessage({ command: "lint", text, ext: ".md" });
+					worker.postMessage({ command: 'lint', text, ext: '.md' })
 				}
-			});
-		};
-		editor.registerCommand(
-			LINT_TEXT_COMMAND,
-			(payload) => {
-				return true;
-			},
-			COMMAND_PRIORITY_NORMAL,
-		);
+			})
+		}
 
 		return editor.registerUpdateListener(() => {
-			setTimeout(checkText, 500);
-		});
-	}, [editor]);
+			setTimeout(checkText, 500)
+		})
+	}, [editor])
 
-	return null;
-};
+	return null
+}
