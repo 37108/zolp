@@ -3,6 +3,7 @@
     "@textlint/markdown"
   ],
   "rules": {
-    "no-dropping-the-ra": true
+     "preset-ja-technical-writing": true,
+     "aws-service-name": true
   }
 }
