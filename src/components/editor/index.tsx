@@ -10,6 +10,7 @@ import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
+import { TextlintErrorNode } from './TextlintErrorNode'
 import { TextlintPlugin } from './TextlintPlugin'
 
 const theme = {
@@ -47,11 +48,12 @@ export const Editor = () => {
 			CodeNode,
 			CodeHighlightNode,
 			LinkNode,
+			TextlintErrorNode,
 		],
 	}
 
 	return (
-		<div className="max-w-4xl mx-auto p-6">
+		<div className="max-w-6xl mx-auto p-6">
 			<LexicalComposer initialConfig={initialConfig}>
 				<div className="relative border border-gray-200 rounded-lg shadow-sm">
 					<RichTextPlugin
@@ -60,7 +62,7 @@ export const Editor = () => {
 						}
 						placeholder={
 							<div className="absolute top-4 left-4 text-gray-400 pointer-events-none">
-								マークダウンを入力してください...
+								テキストを入力してください。
 							</div>
 						}
 						ErrorBoundary={LexicalErrorBoundary}

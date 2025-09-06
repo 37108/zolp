@@ -1,14 +1,20 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
+	$createTextNode,
 	$getRoot,
 	$isElementNode,
 	$isTextNode,
 	createCommand,
 	type LexicalCommand,
+	type LexicalNode,
 } from 'lexical'
 import { useEffect, useState } from 'react'
 import z from 'zod'
 import textlintWorker from '/textlint-worker.js?url'
+import {
+	$createTextlintErrorNode,
+	$isTextlintErrorNode,
+} from './TextlintErrorNode'
 
 const TextLintMessageEvent = z.object({
 	data: z.object({
@@ -50,22 +56,26 @@ export const TextlintPlugin = () => {
 				const { messages } = event.data.result
 				const root = $getRoot()
 
-				// 既存の警告マークを削除
+				// 既存のTextlintErrorNodeを削除
 				root.getChildren().forEach((child) => {
 					if ($isElementNode(child)) {
-						child.getChildren().forEach((textNode) => {
-							if ($isTextNode(textNode)) {
-								textNode.setFormat(0)
-								textNode.setStyle('')
+						const nodesToReplace: Array<{ node: LexicalNode; text: string }> =
+							[]
+						child.getChildren().forEach((node) => {
+							if ($isTextlintErrorNode(node)) {
+								nodesToReplace.push({ node, text: node.getTextContent() })
 							}
+						})
+						nodesToReplace.forEach(({ node, text }) => {
+							node.replace($createTextNode(text))
 						})
 					}
 				})
 
+				// エラー範囲をDecoratorノードで置換
 				for (const message of messages) {
 					const [startIndex, endIndex] = message.range
 
-					// テキストノードを見つけて範囲をマーク
 					let currentIndex = 0
 					root.getChildren().forEach((paragraph) => {
 						if ($isElementNode(paragraph)) {
@@ -76,10 +86,30 @@ export const TextlintPlugin = () => {
 									const nodeEnd = currentIndex + nodeText.length
 
 									if (startIndex < nodeEnd && endIndex > nodeStart) {
-										// 該当範囲にスタイルを適用
-										textNode.setStyle(
-											'border-bottom: 1px solid #ef4444; color: #dc2626;',
+										const relativeStart = Math.max(0, startIndex - nodeStart)
+										const relativeEnd = Math.min(
+											nodeText.length,
+											endIndex - nodeStart,
 										)
+
+										const beforeText = nodeText.slice(0, relativeStart)
+										const errorPart = nodeText.slice(relativeStart, relativeEnd)
+										const afterText = nodeText.slice(relativeEnd)
+
+										if (errorPart) {
+											const errorNode = $createTextlintErrorNode(
+												errorPart,
+												message.message,
+												message.ruleId,
+											)
+
+											if (beforeText)
+												textNode.insertBefore($createTextNode(beforeText))
+											textNode.insertBefore(errorNode)
+											if (afterText)
+												textNode.insertBefore($createTextNode(afterText))
+											textNode.remove()
+										}
 									}
 									currentIndex = nodeEnd
 								}
