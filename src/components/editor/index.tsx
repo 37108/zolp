@@ -1,36 +1,41 @@
-import { Crepe } from '@milkdown/crepe'
+import {
+	defaultValueCtx,
+	Editor as MilkdownEditor,
+	rootCtx,
+} from '@milkdown/kit/core'
+import { listener, listenerCtx } from '@milkdown/kit/plugin/listener'
+import { commonmark } from '@milkdown/kit/preset/commonmark'
 import { Milkdown, useEditor } from '@milkdown/react'
-// @ts-ignore
-// import 'zenn-content-css'
-import '@milkdown/crepe/theme/common/style.css'
-import '@milkdown/crepe/theme/frame.css'
+import { nord } from '@milkdown/theme-nord'
 import type { TextLintMessageEvent } from './schema'
 import { worker } from './service-worker'
+import '@milkdown/theme-nord/style.css'
 
-const markdown = `# 夕暮れの服を纏って
-三日月の下に居座った
+const markdown = `# Milkdown React Commonmark
 
-お寿司を食べれた。`
+> You're scared of a world where you're needed.
+
+This is a demo for using Milkdown with **React**.`
 
 export const Editor = () => {
 	useEditor((root) => {
-		const crepe = new Crepe({
-			root,
-			defaultValue: markdown,
-		})
-
-		crepe.on((listener) => {
-			listener.updated((_) => {
-				worker.postMessage({
-					command: 'lint',
-					text: crepe.getMarkdown(),
-					ext: '.md',
+		return MilkdownEditor.make()
+			.config((ctx) => {
+				ctx.set(rootCtx, root)
+				ctx.set(defaultValueCtx, markdown)
+				ctx.get(listenerCtx).updated((_ctx, doc) => {
+					const text = doc.textContent || ''
+					worker.postMessage({
+						command: 'lint',
+						text,
+						ext: '.md',
+					})
 				})
 			})
-		})
-
-		return crepe
-	}, [])
+			.config(nord)
+			.use(commonmark)
+			.use(listener)
+	})
 
 	worker.onmessage = (event: TextLintMessageEvent) => {
 		if (event.data.command === 'lint') {
@@ -39,5 +44,9 @@ export const Editor = () => {
 		console.log(event.data.result.messages)
 	}
 
-	return <Milkdown />
+	return (
+		<div className="znc">
+			<Milkdown />
+		</div>
+	)
 }

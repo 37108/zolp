@@ -14,6 +14,7 @@
 		"@milkdown/crepe": "^7.15.5",
 		"@milkdown/kit": "^7.15.5",
 		"@milkdown/react": "^7.15.5",
+		"@milkdown/theme-nord": "^7.15.5",
 		"@tailwindcss/vite": "^4.1.13",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",
