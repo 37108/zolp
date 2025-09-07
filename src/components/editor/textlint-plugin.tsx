@@ -48,8 +48,6 @@ export const TextlintPlugin = () => {
 				for (const message of messages) {
 					const [startIndex, endIndex] = message.range
 
-					console.log(message)
-
 					let currentIndex = 0
 					root.getChildren().forEach((paragraph) => {
 						if ($isElementNode(paragraph)) {
