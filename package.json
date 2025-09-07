@@ -31,5 +31,9 @@
 		"textlint-rule-aws-service-name": "^1.13.1",
 		"typescript": "~5.8.3",
 		"vite": "^7.1.2"
+	},
+	"volta": {
+		"node": "24.7.0",
+		"npm": "11.6.0"
 	}
 }
