@@ -38,7 +38,14 @@ export const Editor = () => {
 
 		const editorElement = editor.view.dom
 		const handleCompositionStart = () => setIsComposing(true)
-		const handleCompositionEnd = () => setIsComposing(false)
+		const handleCompositionEnd = () => {
+			setIsComposing(false)
+			const text = editor.getText()
+			if (text !== previous && text.trim()) {
+				setPrevious(text)
+				worker.postMessage({ command: 'lint', text, ext: '.md' })
+			}
+		}
 
 		editorElement.addEventListener('compositionstart', handleCompositionStart)
 		editorElement.addEventListener('compositionend', handleCompositionEnd)
@@ -50,7 +57,7 @@ export const Editor = () => {
 			)
 			editorElement.removeEventListener('compositionend', handleCompositionEnd)
 		}
-	}, [editor])
+	}, [editor, previous])
 
 	useEffect(() => {
 		worker.onmessage = (event: TextLintMessageEvent) => {
@@ -61,7 +68,7 @@ export const Editor = () => {
 				const currentSelection = editor.state.selection
 
 				// 既存のハイライトを削除
-				editor.commands.unsetMark('textlintHighlight')
+				editor.chain().focus().selectAll().unsetMark('textlintHighlight').run()
 
 				// エラー箇所をハイライト
 				for (const message of messages) {
