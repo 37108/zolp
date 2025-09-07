@@ -11,14 +11,13 @@
 	"type": "module",
 	"dependencies": {
 		"@contentful/app-sdk": "^4.41.1",
+		"@milkdown/crepe": "^7.15.5",
+		"@milkdown/kit": "^7.15.5",
+		"@milkdown/react": "^7.15.5",
 		"@tailwindcss/vite": "^4.1.13",
-		"@tiptap/pm": "^3.4.1",
-		"@tiptap/react": "^3.4.1",
-		"@tiptap/starter-kit": "^3.4.1",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",
 		"tailwindcss": "^4.1.13",
-		"tiptap-markdown": "^0.8.10",
 		"zenn-content-css": "^0.2.3",
 		"zod": "^4.1.5"
 	},
