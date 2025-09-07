@@ -12,12 +12,14 @@ import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
 import { $prose } from '@milkdown/kit/utils'
 import { Milkdown, useEditor } from '@milkdown/react'
-import { nord } from '@milkdown/theme-nord'
 import type { TextLintMessageEvent } from './schema'
 import { worker } from './service-worker'
-import '@milkdown/theme-nord/style.css'
 
-const markdown = `# Milkdown React Commonmark
+const markdown = `## Milkdown React Commonmark
+
+### What is This ?
+
+[link](https://example.com)
 
 > You're scared of a world where you're needed.
 
@@ -63,7 +65,7 @@ export const Editor = () => {
 				ctx.get(listenerCtx).updated((ctx, doc) => {
 					const editorView = ctx.get(editorViewCtx)
 					const serializer = ctx.get(serializerCtx)
-					doc.toString()
+					console.log(serializer(editorView.state.doc))
 					worker.postMessage({
 						command: 'lint',
 						text: serializer(editorView.state.doc),
@@ -71,7 +73,6 @@ export const Editor = () => {
 					})
 				})
 			})
-			.config(nord)
 			.use(commonmark)
 			.use(listener)
 			.use(createTextlintPlugin())
@@ -105,16 +106,12 @@ export const Editor = () => {
 
 			// textlintのindex位置をProseMirrorの位置に変換しますわ
 			if (message.range) {
-				const from = getPositionFromMarkdownIndex(
+				const from = getPositionFromTextIndex(
 					doc,
 					markdownText,
 					message.range[0],
 				)
-				const to = getPositionFromMarkdownIndex(
-					doc,
-					markdownText,
-					message.range[1],
-				)
+				const to = getPositionFromTextIndex(doc, markdownText, message.range[1])
 
 				if (from !== null && to !== null) {
 					decorations.push(
@@ -133,158 +130,99 @@ export const Editor = () => {
 		view.dispatch(tr)
 	}
 
-	return <Milkdown />
+	return (
+		<div className="editor bg-neutral-100  py-2 px-4 rounded-md border border-neutral-300 shadow-xl">
+			<Milkdown />
+		</div>
+	)
 }
 
-// Markdownのindex位置をProseMirrorの位置に変換する改良版ヘルパー関数ですわ
-function getPositionFromMarkdownIndex(
+// textlintのインデックス位置をProseMirrorの位置に変換するシンプル版ヘルパー関数ですわ
+function getPositionFromTextIndex(
 	doc: Node,
 	markdownText: string,
 	targetIndex: number,
 ): number | null {
 	if (targetIndex < 0 || targetIndex > markdownText.length) return null
 
-	// Markdownテキストとドキュメントの対応マップを作成しますわ
-	const positionMap: Map<number, number> = new Map()
-	let markdownIndex = 0
+	// ProseMirrorのテキスト内容を取得しますわ
+	let plainText = ''
+	const positionMap: Array<{ textIndex: number; docPos: number }> = []
 
-	// ドキュメントを走査して、各位置でのMarkdownインデックスを記録しますわ
+	// ドキュメントを走査してプレーンテキストと位置マップを作成しますわ
 	doc.descendants((node: Node, pos: number) => {
-		// テキストノードの場合
 		if (node.isText && node.text) {
-			const text = node.text
-			for (let i = 0; i < text.length; i++) {
-				// Markdownテキストの対応する文字を探しますわ
-				while (markdownIndex < markdownText.length) {
-					const markdownChar = markdownText[markdownIndex]
-					const docChar = text[i]
-
-					// 文字が一致する場合
-					if (markdownChar === docChar) {
-						positionMap.set(markdownIndex, pos + i)
-						markdownIndex++
-						break
-					}
-					// Markdownの改行や特殊文字をスキップしますわ
-					if (markdownChar === '\n' || markdownChar === '\r') {
-						markdownIndex++
-					}
-					// Markdownのマークアップ文字をスキップしますわ
-					else if (isMarkdownMarkup(markdownText, markdownIndex)) {
-						markdownIndex++
-					} else {
-						break
-					}
-				}
+			// 各文字の位置を記録しますわ
+			for (let i = 0; i < node.text.length; i++) {
+				positionMap.push({
+					textIndex: plainText.length + i,
+					docPos: pos + i,
+				})
+			}
+			plainText += node.text
+		} else if (node.isBlock && pos > 0) {
+			// ブロック間に改行を追加しますわ
+			// 空のブロックは改行として扱いますわ
+			if (node.content.size === 0) {
+				plainText += '\n'
+			} else if (plainText.length > 0 && !plainText.endsWith('\n')) {
+				plainText += '\n'
 			}
 		}
-		// ブロックノードの終端で改行を考慮しますわ
-		else if (node.isBlock && pos > 0) {
-			// Markdownの改行を消費しますわ
-			while (
-				markdownIndex < markdownText.length &&
-				(markdownText[markdownIndex] === '\n' ||
-					markdownText[markdownIndex] === '\r')
-			) {
-				positionMap.set(markdownIndex, pos)
-				markdownIndex++
-			}
-		}
-
 		return true
 	})
 
-	// 最も近い位置を探しますわ
-	let closestPos: number | null = null
-	let closestDistance = Number.POSITIVE_INFINITY
+	console.log('Plain text from doc:', plainText)
+	console.log('Markdown text:', markdownText)
+	console.log('Position map:', positionMap)
 
-	positionMap.forEach((pos, mdIndex) => {
-		const distance = Math.abs(mdIndex - targetIndex)
-		if (distance < closestDistance) {
-			closestDistance = distance
-			closestPos = pos
+	// Markdownテキストとプレーンテキストの対応を見つけますわ
+	// textlintはMarkdownのインデックスを返すので、それに対応するProseMirror位置を探しますわ
+
+	const beforeText = markdownText.substring(0, targetIndex)
+	const textBeforeTarget = beforeText
+		.replace(/\n+/g, '\n')
+		.replace(/^\n+|\n+$/g, '')
+
+	// プレーンテキスト内での位置を探しますわ
+	let matchIndex = -1
+	for (let i = 0; i <= plainText.length; i++) {
+		const plainBefore = plainText
+			.substring(0, i)
+			.replace(/\n+/g, '\n')
+			.replace(/^\n+|\n+$/g, '')
+		if (plainBefore === textBeforeTarget) {
+			matchIndex = i
+			break
 		}
-	})
+	}
 
-	// 見つからない場合は、線形補間で推定しますわ
-	if (closestPos === null && positionMap.size > 0) {
-		const entries = Array.from(positionMap.entries()).sort(
-			(a, b) => a[0] - b[0],
-		)
+	if (matchIndex >= 0) {
+		// 対応する位置を探しますわ
+		const mapEntry = positionMap.find((entry) => entry.textIndex === matchIndex)
+		if (mapEntry) {
+			return mapEntry.docPos
+		}
 
-		for (let i = 0; i < entries.length - 1; i++) {
-			const [mdIndex1, pos1] = entries[i]
-			const [mdIndex2, pos2] = entries[i + 1]
-
-			if (targetIndex >= mdIndex1 && targetIndex <= mdIndex2) {
-				const ratio = (targetIndex - mdIndex1) / (mdIndex2 - mdIndex1)
-				closestPos = Math.round(pos1 + ratio * (pos2 - pos1))
-				break
+		// 最も近い位置を返しますわ
+		if (positionMap.length > 0) {
+			if (matchIndex <= positionMap[0].textIndex) {
+				return positionMap[0].docPos
 			}
-		}
+			if (matchIndex >= positionMap[positionMap.length - 1].textIndex) {
+				return positionMap[positionMap.length - 1].docPos + 1
+			}
 
-		// 最後の位置より後の場合
-		if (closestPos === null && entries.length > 0) {
-			const [lastMdIndex, lastPos] = entries[entries.length - 1]
-			if (targetIndex > lastMdIndex) {
-				closestPos = lastPos + (targetIndex - lastMdIndex)
+			for (let i = 0; i < positionMap.length - 1; i++) {
+				if (
+					matchIndex > positionMap[i].textIndex &&
+					matchIndex < positionMap[i + 1].textIndex
+				) {
+					return positionMap[i].docPos + (matchIndex - positionMap[i].textIndex)
+				}
 			}
 		}
 	}
 
-	return closestPos
-}
-
-// Markdownのマークアップ文字かどうかを判定するヘルパー関数ですわ
-function isMarkdownMarkup(text: string, index: number): boolean {
-	const char = text[index]
-	const prevChar = index > 0 ? text[index - 1] : ''
-	const nextChar = index < text.length - 1 ? text[index + 1] : ''
-
-	// 一般的なMarkdownマークアップ文字をチェックしますわ
-	if (
-		char === '*' ||
-		char === '_' ||
-		char === '`' ||
-		char === '#' ||
-		char === '>' ||
-		char === '[' ||
-		char === ']' ||
-		char === '(' ||
-		char === ')' ||
-		char === '!' ||
-		char === '-' ||
-		char === '+'
-	) {
-		// リスト記号の場合
-		if (
-			(char === '-' || char === '+' || char === '*') &&
-			(prevChar === '\n' || index === 0) &&
-			nextChar === ' '
-		) {
-			return true
-		}
-
-		// 見出しの場合
-		if (char === '#' && (prevChar === '\n' || index === 0)) {
-			return true
-		}
-
-		// 引用の場合
-		if (char === '>' && (prevChar === '\n' || index === 0)) {
-			return true
-		}
-
-		// 強調やコードの場合
-		if (
-			(char === '*' || char === '_' || char === '`') &&
-			(nextChar === char || prevChar === char)
-		) {
-			return true
-		}
-
-		return false
-	}
-
-	return false
+	return null
 }

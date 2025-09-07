@@ -11,7 +11,9 @@ if (import.meta.env.PROD) {
 	createRoot(container).render(
 		<StrictMode>
 			<MilkdownProvider>
-				<Editor />
+				<div>
+					<Editor />
+				</div>
 			</MilkdownProvider>
 		</StrictMode>,
 	)
@@ -19,7 +21,9 @@ if (import.meta.env.PROD) {
 	createRoot(container).render(
 		<StrictMode>
 			<MilkdownProvider>
-				<Editor />
+				<div className="mx-auto mt-10 max-w-3xl">
+					<Editor />
+				</div>
 			</MilkdownProvider>
 		</StrictMode>,
 	)

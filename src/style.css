@@ -1,1 +1,32 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Zen+Kaku+Gothic+Antique&display=swap");
 @import "tailwindcss";
+
+html {
+	font-family:
+		"Montserrat",
+		"Zen Kaku Gothic Antique" sans-serif;
+	font-optical-sizing: auto;
+}
+
+.editor h2 {
+	font-size: 2rem;
+	font-weight: 600;
+}
+
+.editor h3 {
+	font-size: 1.5rem;
+}
+
+.editor p {
+	font-size: 1rem;
+}
+
+.editor a {
+	color: #5a79ba;
+	text-decoration: underline;
+}
+
+.editor blockquote {
+	border-left: 1px solid #9ea1a3;
+	padding-left: 4px;
+}
