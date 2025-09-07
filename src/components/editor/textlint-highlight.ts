@@ -23,11 +23,13 @@ export const TextlintHighlight = Mark.create({
 	},
 
 	renderHTML({ HTMLAttributes }) {
+		const { message } = HTMLAttributes
 		return [
 			'span',
 			mergeAttributes(HTMLAttributes, {
 				'data-textlint': '',
-				style: 'background-color: #fef2f2; border-bottom: 2px solid #ef4444;',
+				class: 'group relative border-b border-red-300',
+				title: message || '',
 			}),
 			0,
 		]
