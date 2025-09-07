@@ -15,15 +15,11 @@ import { Milkdown, useEditor } from '@milkdown/react'
 import type { TextLintMessageEvent } from './schema'
 import { worker } from './service-worker'
 
-const markdown = `## Milkdown React Commonmark
+import '@milkdown/crepe/theme/common/style.css'
 
-### What is This ?
+const markdown = `textlint の導入サンプル
 
-[link](https://example.com)
-
-> You're scared of a world where you're needed.
-
-This is a demo for using Milkdown with **React**.`
+テキストを編集して入力してください`
 
 // TextLintのエラー装飾用プラグインキーですわ
 const textlintPluginKey = new PluginKey('textlint')
@@ -128,7 +124,7 @@ export const Editor = () => {
 	}
 
 	return (
-		<div className="editor bg-neutral-100  py-2 px-4 rounded-md border border-neutral-300 shadow-xl">
+		<div className="bg-neutral-100  py-2 px-4 rounded-md border border-neutral-300 shadow-xl">
 			<Milkdown />
 		</div>
 	)

@@ -7,26 +7,3 @@ html {
 		"Zen Kaku Gothic Antique" sans-serif;
 	font-optical-sizing: auto;
 }
-
-.editor h2 {
-	font-size: 2rem;
-	font-weight: 600;
-}
-
-.editor h3 {
-	font-size: 1.5rem;
-}
-
-.editor p {
-	font-size: 1rem;
-}
-
-.editor a {
-	color: #5a79ba;
-	text-decoration: underline;
-}
-
-.editor blockquote {
-	border-left: 1px solid #9ea1a3;
-	padding-left: 4px;
-}
