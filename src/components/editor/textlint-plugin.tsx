@@ -9,40 +9,12 @@ import {
 	type LexicalNode,
 } from 'lexical'
 import { useEffect, useState } from 'react'
-import z from 'zod'
-import textlintWorker from '/textlint-worker.js?url'
+import type { TextLintMessageEvent } from './schema'
+import { worker } from './service-worker'
 import {
 	$createTextlintErrorNode,
 	$isTextlintErrorNode,
-} from './TextlintErrorNode'
-
-const TextLintMessageEvent = z.object({
-	data: z.object({
-		command: z.enum(['lint:result']),
-		result: z.object({
-			filePath: z.string(),
-			messages: z.array(
-				z.object({
-					type: z.enum(['lint']),
-					ruleId: z.string(),
-					message: z.string(),
-					severity: z.number(),
-					column: z.number(),
-					index: z.number(),
-					line: z.number(),
-					loc: z.object({
-						end: z.object({ line: z.number(), column: z.number }),
-						start: z.object({ line: z.number(), column: z.number }),
-					}),
-					range: z.array(z.number()),
-				}),
-			),
-		}),
-	}),
-})
-type TextLintMessageEvent = z.infer<typeof TextLintMessageEvent>
-
-const worker = new Worker(textlintWorker)
+} from './textlint-error-node'
 
 export const LINT_TEXT_COMMAND: LexicalCommand<string> = createCommand()
 
@@ -75,6 +47,8 @@ export const TextlintPlugin = () => {
 				// エラー範囲をDecoratorノードで置換
 				for (const message of messages) {
 					const [startIndex, endIndex] = message.range
+
+					console.log(message)
 
 					let currentIndex = 0
 					root.getChildren().forEach((paragraph) => {

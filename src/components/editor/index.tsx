@@ -10,8 +10,8 @@ import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
-import { TextlintErrorNode } from './TextlintErrorNode'
-import { TextlintPlugin } from './TextlintPlugin'
+import { TextlintErrorNode } from './textlint-error-node'
+import { TextlintPlugin } from './textlint-plugin'
 
 export const onError = (error: Error) => {
 	console.error(error)
@@ -44,7 +44,7 @@ export const Editor = () => {
 						}
 						placeholder={
 							<div className="absolute top-4 left-4 text-gray-400 pointer-events-none">
-								テキストを入力してください。
+								本文を入力してください。
 							</div>
 						}
 						ErrorBoundary={LexicalErrorBoundary}
