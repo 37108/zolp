@@ -1,10 +1,16 @@
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { TextLintMessageEvent } from './schema'
+import { worker } from './service-worker'
+import { TextlintHighlight } from './textlint-highlight'
 
 export const Editor = () => {
+	const [previous, setPrevious] = useState('')
+	const [isComposing, setIsComposing] = useState(false)
+
 	const editor = useEditor({
-		extensions: [StarterKit],
+		extensions: [StarterKit, TextlintHighlight],
 		content: '<p>本文を入力してください</p>',
 		editorProps: {
 			attributes: {
@@ -12,7 +18,66 @@ export const Editor = () => {
 					'znc outline-none p-4 border border-gray-300 rounded-md min-h-[200px] leading-relaxed',
 			},
 		},
+		onUpdate: ({ editor }) => {
+			if (isComposing) return
+
+			const text = editor.getText()
+			if (text !== previous && text.trim()) {
+				setPrevious(text)
+				setTimeout(() => {
+					if (!isComposing) {
+						worker.postMessage({ command: 'lint', text, ext: '.md' })
+					}
+				}, 500)
+			}
+		},
 	})
+
+	useEffect(() => {
+		if (!editor) return
+
+		const editorElement = editor.view.dom
+		const handleCompositionStart = () => setIsComposing(true)
+		const handleCompositionEnd = () => setIsComposing(false)
+
+		editorElement.addEventListener('compositionstart', handleCompositionStart)
+		editorElement.addEventListener('compositionend', handleCompositionEnd)
+
+		return () => {
+			editorElement.removeEventListener(
+				'compositionstart',
+				handleCompositionStart,
+			)
+			editorElement.removeEventListener('compositionend', handleCompositionEnd)
+		}
+	}, [editor])
+
+	useEffect(() => {
+		worker.onmessage = (event: TextLintMessageEvent) => {
+			if (event.data.command === 'lint:result' && editor) {
+				const { messages } = event.data.result
+
+				// カーソル位置を保存
+				const currentSelection = editor.state.selection
+
+				// 既存のハイライトを削除
+				editor.commands.unsetMark('textlintHighlight')
+
+				// エラー箇所をハイライト
+				for (const message of messages) {
+					const [start, end] = message.range
+					editor.commands.setTextSelection({ from: start + 1, to: end + 1 })
+					editor.commands.setMark('textlintHighlight', {
+						message: message.message,
+						ruleId: message.ruleId,
+					})
+				}
+
+				// カーソル位置を復元
+				editor.commands.setTextSelection(currentSelection)
+			}
+		}
+	}, [editor])
 
 	const stylingButtons = useMemo(
 		() => [
