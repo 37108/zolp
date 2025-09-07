@@ -7,6 +7,7 @@ import {
 } from '@milkdown/kit/core'
 import { listener, listenerCtx } from '@milkdown/kit/plugin/listener'
 import { commonmark } from '@milkdown/kit/preset/commonmark'
+import type { Node } from '@milkdown/kit/prose/model'
 import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
 import { $prose } from '@milkdown/kit/utils'
@@ -137,7 +138,7 @@ export const Editor = () => {
 
 // Markdownのindex位置をProseMirrorの位置に変換する改良版ヘルパー関数ですわ
 function getPositionFromMarkdownIndex(
-	doc: any,
+	doc: Node,
 	markdownText: string,
 	targetIndex: number,
 ): number | null {
@@ -148,9 +149,9 @@ function getPositionFromMarkdownIndex(
 	let markdownIndex = 0
 
 	// ドキュメントを走査して、各位置でのMarkdownインデックスを記録しますわ
-	doc.descendants((node: any, pos: number) => {
+	doc.descendants((node: Node, pos: number) => {
 		// テキストノードの場合
-		if (node.isText) {
+		if (node.isText && node.text) {
 			const text = node.text
 			for (let i = 0; i < text.length; i++) {
 				// Markdownテキストの対応する文字を探しますわ
