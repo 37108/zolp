@@ -65,7 +65,6 @@ export const Editor = () => {
 				ctx.get(listenerCtx).updated((ctx, doc) => {
 					const editorView = ctx.get(editorViewCtx)
 					const serializer = ctx.get(serializerCtx)
-					console.log(serializer(editorView.state.doc))
 					worker.postMessage({
 						command: 'lint',
 						text: serializer(editorView.state.doc),
@@ -87,8 +86,6 @@ export const Editor = () => {
 		}
 
 		const messages = event.data.result.messages
-
-		console.log(messages)
 
 		// エディターインスタンスを取得しますわ
 		const editor = get()
@@ -171,10 +168,6 @@ function getPositionFromTextIndex(
 		}
 		return true
 	})
-
-	console.log('Plain text from doc:', plainText)
-	console.log('Markdown text:', markdownText)
-	console.log('Position map:', positionMap)
 
 	// Markdownテキストとプレーンテキストの対応を見つけますわ
 	// textlintはMarkdownのインデックスを返すので、それに対応するProseMirror位置を探しますわ
