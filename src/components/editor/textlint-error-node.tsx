@@ -90,11 +90,11 @@ export class TextlintErrorNode extends DecoratorNode<JSX.Element> {
 	decorate(): JSX.Element {
 		return (
 			<span title={this.__message} className="group relative">
-				<span
-					title={this.__message}
-					className="border-b border-red-500 text-red-500 border-dashed"
-				>
+				<span className="border-b border-red-500 text-red-500 border-dashed">
 					{this.__text}
+				</span>
+				<span className="hidden absolute bottom-5 left-1 p-1 shadow-2xl text-black whitespace-nowrap bg-neutral-100 text-xs duration-300 group-hover:inline-block">
+					{this.__message}
 				</span>
 			</span>
 		)
