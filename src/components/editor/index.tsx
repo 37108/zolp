@@ -105,23 +105,40 @@ export const Editor = () => {
 
 			const decorations: Decoration[] = []
 			doc.descendants((node, position) => {
-				const line = lines.indexOf(node.text ?? '')
-				if (line <= -1) {
-					return
+				if (!node.isText || !node.text) return
+
+				// 現在のノードが含まれる行を特定
+				let currentLine = 0
+				for (let i = 0; i < lines.length; i++) {
+					if (lines[i].includes(node.text)) {
+						currentLine = i + 1
+						break
+					}
 				}
+
 				messages
-					.filter((message) => message.line === line + 1)
+					.filter((message) => message.line === currentLine)
 					.forEach((message) => {
-						decorations.push(
-							Decoration.inline(
-								position + message.column - 1,
-								position + message.column + 1,
-								{
-									class: cn('border-b', 'border-red-300'),
-									title: message.message,
-								},
-							),
-						)
+						// Markdownの位置からテキストノード内の位置を計算
+						const markdownLine = lines[currentLine - 1]
+						const textInLine = node.text ?? ''
+						const textStart = markdownLine.indexOf(textInLine)
+
+						if (textStart !== -1 && message.column > textStart) {
+							const adjustedColumn = message.column - textStart - 1
+							if (adjustedColumn >= 0 && adjustedColumn < textInLine.length) {
+								decorations.push(
+									Decoration.inline(
+										position + adjustedColumn,
+										position + adjustedColumn + 1,
+										{
+											class: cn('border-b', 'border-red-300'),
+											title: message.message,
+										},
+									),
+								)
+							}
+						}
 					})
 			})
 
