@@ -10,9 +10,7 @@ import { commonmark } from '@milkdown/kit/preset/commonmark'
 import { Milkdown, useEditor } from '@milkdown/react'
 import type { TextLintMessageEvent } from './schema'
 import { worker } from './service-worker'
-
 import '@milkdown/crepe/theme/common/style.css'
-import type { Node } from '@milkdown/kit/prose/model'
 import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
 import { $prose } from '@milkdown/kit/utils'
@@ -92,22 +90,27 @@ export const Editor = () => {
 			const markdown = serializer(doc)
 			const lines = markdown.split('\n')
 
-			const decorations: Decoration[] = messages.map((message) => {
-				const position = findPositionInDoc(
-					doc,
-					message.line,
-					message.column,
-					lines,
-				)
-
-				return Decoration.inline(
-					position,
-					position + message.range[1] - message.range[0],
-					{
-						class: 'border-b border-red-300',
-						title: message.message,
-					},
-				)
+			const decorations: Decoration[] = []
+			doc.descendants((node, position) => {
+				const line = lines.indexOf(node.text ?? '')
+				if (line <= -1) {
+					return
+				}
+				messages
+					.filter((message) => message.line === line + 1)
+					.forEach((message) => {
+						console.log(message)
+						decorations.push(
+							Decoration.inline(
+								position + message.column - 1,
+								position + message.column + 1,
+								{
+									class: 'border-b border-red-300',
+									title: message.message,
+								},
+							),
+						)
+					})
 			})
 
 			const decorationSet = DecorationSet.create(doc, decorations)
@@ -120,58 +123,4 @@ export const Editor = () => {
 			<Milkdown />
 		</div>
 	)
-}
-
-function findPositionInDoc(
-	doc: Node,
-	targetLine: number,
-	targetColumn: number,
-	markdownLines: string[],
-): number {
-	let targetOffset = 0
-	for (let i = 0; i < targetLine - 1; i++) {
-		targetOffset += markdownLines[i].length + 1
-	}
-	targetOffset += targetColumn - 1
-
-	let currentMarkdownOffset = 0
-	let proseMirrorPos = 0
-	let found = false
-
-	doc.descendants((node, pos) => {
-		if (found) return false
-
-		const nodeMarkdownLength = estimateMarkdownLength(node)
-
-		if (currentMarkdownOffset + nodeMarkdownLength >= targetOffset) {
-			const relativeOffset = targetOffset - currentMarkdownOffset
-			proseMirrorPos = pos + Math.min(relativeOffset, node.nodeSize - 1)
-			found = true
-			return false
-		}
-
-		currentMarkdownOffset += nodeMarkdownLength
-	})
-
-	return proseMirrorPos
-}
-
-function estimateMarkdownLength(node: Node): number {
-	switch (node.type.name) {
-		case 'heading':
-			return node.attrs.level + 1 + node.textContent.length + 1
-		case 'paragraph':
-			return node.textContent.length + 1
-		case 'code_block':
-			return (
-				3 +
-				(node.attrs.language?.length || 0) +
-				1 +
-				node.textContent.length +
-				1 +
-				3
-			)
-		default:
-			return node.textContent.length
-	}
 }
