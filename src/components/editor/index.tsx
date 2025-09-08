@@ -7,50 +7,46 @@ import {
 } from '@milkdown/kit/core'
 import { listener, listenerCtx } from '@milkdown/kit/plugin/listener'
 import { commonmark } from '@milkdown/kit/preset/commonmark'
-import type { Node } from '@milkdown/kit/prose/model'
-import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
-import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
-import { $prose } from '@milkdown/kit/utils'
 import { Milkdown, useEditor } from '@milkdown/react'
 import type { TextLintMessageEvent } from './schema'
 import { worker } from './service-worker'
 
 import '@milkdown/crepe/theme/common/style.css'
+import type { Node } from '@milkdown/kit/prose/model'
+import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
+import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
+import { $prose } from '@milkdown/kit/utils'
 
 const markdown = `textlint の導入サンプル
 
-テキストを編集して入力してください`
+<br />
 
-// TextLintのエラー装飾用プラグインキーですわ
-const textlintPluginKey = new PluginKey('textlint')
 
-// エラー装飾用のプラグインを作成する関数ですわ
-const createTextlintPlugin = () => {
-	return $prose(() => {
-		return new Plugin({
-			key: textlintPluginKey,
-			state: {
-				init() {
-					return DecorationSet.empty
-				},
-				apply(tr, oldState) {
-					// メタデータからデコレーションを取得しますわ
-					const decorations = tr.getMeta(textlintPluginKey)
-					if (decorations) {
-						return decorations
-					}
-					// ドキュメントが変更された場合は、デコレーションをマッピングしますわ
-					return tr.docChanged ? oldState.map(tr.mapping, tr.doc) : oldState
-				},
+テキストを編集して入力してください
+
+`
+
+const textlintPluginKey = new PluginKey<DecorationSet>('textlint')
+
+const textlintPlugin = $prose(() => {
+	return new Plugin({
+		key: textlintPluginKey,
+		state: {
+			init() {
+				return DecorationSet.empty
 			},
-			props: {
-				decorations(state) {
-					return textlintPluginKey.getState(state)
-				},
+			apply(tr, decorationSet) {
+				const newDecorationSet = tr.getMeta(textlintPluginKey)
+				return newDecorationSet || decorationSet.map(tr.mapping, tr.doc)
 			},
-		})
+		},
+		props: {
+			decorations(state) {
+				return textlintPluginKey.getState(state)
+			},
+		},
 	})
-}
+})
 
 export const Editor = () => {
 	const { get } = useEditor((root) => {
@@ -58,7 +54,7 @@ export const Editor = () => {
 			.config((ctx) => {
 				ctx.set(rootCtx, root)
 				ctx.set(defaultValueCtx, markdown)
-				ctx.get(listenerCtx).updated((ctx, doc) => {
+				ctx.get(listenerCtx).updated((ctx) => {
 					const editorView = ctx.get(editorViewCtx)
 					const serializer = ctx.get(serializerCtx)
 					worker.postMessage({
@@ -70,7 +66,7 @@ export const Editor = () => {
 			})
 			.use(commonmark)
 			.use(listener)
-			.use(createTextlintPlugin())
+			.use(textlintPlugin)
 	})
 
 	worker.onmessage = (event: TextLintMessageEvent) => {
@@ -82,45 +78,41 @@ export const Editor = () => {
 		}
 
 		const messages = event.data.result.messages
-
-		// エディターインスタンスを取得しますわ
 		const editor = get()
-		if (!editor) return
 
-		const ctx = editor.ctx
-		const view = ctx.get(editorViewCtx)
-		const decorations: Decoration[] = []
+		if (!editor) {
+			return
+		}
 
-		// textlintのメッセージから装飾を作成しますわ
-		messages.forEach((message) => {
-			const doc = view.state.doc
+		editor.action((ctx) => {
+			const view = ctx.get(editorViewCtx)
 			const serializer = ctx.get(serializerCtx)
-			const markdownText = serializer(doc)
 
-			// textlintのindex位置をProseMirrorの位置に変換しますわ
-			if (message.range) {
-				const from = getPositionFromTextIndex(
+			const doc = view.state.doc
+			const markdown = serializer(doc)
+			const lines = markdown.split('\n')
+
+			const decorations: Decoration[] = messages.map((message) => {
+				const position = findPositionInDoc(
 					doc,
-					markdownText,
-					message.range[0],
+					message.line,
+					message.column,
+					lines,
 				)
-				const to = getPositionFromTextIndex(doc, markdownText, message.range[1])
 
-				if (from !== null && to !== null) {
-					decorations.push(
-						Decoration.inline(from, to, {
-							class: 'border-b border-red-500',
-							title: message.message,
-						}),
-					)
-				}
-			}
+				return Decoration.inline(
+					position,
+					position + message.range[1] - message.range[0],
+					{
+						class: 'border-b border-red-300',
+						title: message.message,
+					},
+				)
+			})
+
+			const decorationSet = DecorationSet.create(doc, decorations)
+			view.dispatch(view.state.tr.setMeta(textlintPluginKey, decorationSet))
 		})
-
-		// 装飾をエディターに適用しますわ
-		const decorationSet = DecorationSet.create(view.state.doc, decorations)
-		const tr = view.state.tr.setMeta(textlintPluginKey, decorationSet)
-		view.dispatch(tr)
 	}
 
 	return (
@@ -130,88 +122,56 @@ export const Editor = () => {
 	)
 }
 
-// textlintのインデックス位置をProseMirrorの位置に変換するシンプル版ヘルパー関数ですわ
-function getPositionFromTextIndex(
+function findPositionInDoc(
 	doc: Node,
-	markdownText: string,
-	targetIndex: number,
-): number | null {
-	if (targetIndex < 0 || targetIndex > markdownText.length) return null
+	targetLine: number,
+	targetColumn: number,
+	markdownLines: string[],
+): number {
+	let targetOffset = 0
+	for (let i = 0; i < targetLine - 1; i++) {
+		targetOffset += markdownLines[i].length + 1
+	}
+	targetOffset += targetColumn - 1
 
-	// ProseMirrorのテキスト内容を取得しますわ
-	let plainText = ''
-	const positionMap: Array<{ textIndex: number; docPos: number }> = []
+	let currentMarkdownOffset = 0
+	let proseMirrorPos = 0
+	let found = false
 
-	// ドキュメントを走査してプレーンテキストと位置マップを作成しますわ
-	doc.descendants((node: Node, pos: number) => {
-		if (node.isText && node.text) {
-			// 各文字の位置を記録しますわ
-			for (let i = 0; i < node.text.length; i++) {
-				positionMap.push({
-					textIndex: plainText.length + i,
-					docPos: pos + i,
-				})
-			}
-			plainText += node.text
-		} else if (node.isBlock && pos > 0) {
-			// ブロック間に改行を追加しますわ
-			// 空のブロックは改行として扱いますわ
-			if (node.content.size === 0) {
-				plainText += '\n'
-			} else if (plainText.length > 0 && !plainText.endsWith('\n')) {
-				plainText += '\n'
-			}
+	doc.descendants((node, pos) => {
+		if (found) return false
+
+		const nodeMarkdownLength = estimateMarkdownLength(node)
+
+		if (currentMarkdownOffset + nodeMarkdownLength >= targetOffset) {
+			const relativeOffset = targetOffset - currentMarkdownOffset
+			proseMirrorPos = pos + Math.min(relativeOffset, node.nodeSize - 1)
+			found = true
+			return false
 		}
-		return true
+
+		currentMarkdownOffset += nodeMarkdownLength
 	})
 
-	// Markdownテキストとプレーンテキストの対応を見つけますわ
-	// textlintはMarkdownのインデックスを返すので、それに対応するProseMirror位置を探しますわ
+	return proseMirrorPos
+}
 
-	const beforeText = markdownText.substring(0, targetIndex)
-	const textBeforeTarget = beforeText
-		.replace(/\n+/g, '\n')
-		.replace(/^\n+|\n+$/g, '')
-
-	// プレーンテキスト内での位置を探しますわ
-	let matchIndex = -1
-	for (let i = 0; i <= plainText.length; i++) {
-		const plainBefore = plainText
-			.substring(0, i)
-			.replace(/\n+/g, '\n')
-			.replace(/^\n+|\n+$/g, '')
-		if (plainBefore === textBeforeTarget) {
-			matchIndex = i
-			break
-		}
+function estimateMarkdownLength(node: Node): number {
+	switch (node.type.name) {
+		case 'heading':
+			return node.attrs.level + 1 + node.textContent.length + 1
+		case 'paragraph':
+			return node.textContent.length + 1
+		case 'code_block':
+			return (
+				3 +
+				(node.attrs.language?.length || 0) +
+				1 +
+				node.textContent.length +
+				1 +
+				3
+			)
+		default:
+			return node.textContent.length
 	}
-
-	if (matchIndex >= 0) {
-		// 対応する位置を探しますわ
-		const mapEntry = positionMap.find((entry) => entry.textIndex === matchIndex)
-		if (mapEntry) {
-			return mapEntry.docPos
-		}
-
-		// 最も近い位置を返しますわ
-		if (positionMap.length > 0) {
-			if (matchIndex <= positionMap[0].textIndex) {
-				return positionMap[0].docPos
-			}
-			if (matchIndex >= positionMap[positionMap.length - 1].textIndex) {
-				return positionMap[positionMap.length - 1].docPos + 1
-			}
-
-			for (let i = 0; i < positionMap.length - 1; i++) {
-				if (
-					matchIndex > positionMap[i].textIndex &&
-					matchIndex < positionMap[i + 1].textIndex
-				) {
-					return positionMap[i].docPos + (matchIndex - positionMap[i].textIndex)
-				}
-			}
-		}
-	}
-
-	return null
 }
