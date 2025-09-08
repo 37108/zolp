@@ -5,15 +5,20 @@ import {
 	serializerCtx,
 } from '@milkdown/kit/core'
 import { listener, listenerCtx } from '@milkdown/kit/plugin/listener'
-import { commonmark } from '@milkdown/kit/preset/commonmark'
+import {
+	commonmark,
+	toggleEmphasisCommand,
+	toggleStrongCommand,
+} from '@milkdown/kit/preset/commonmark'
 import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
-import { $prose } from '@milkdown/kit/utils'
+import { $prose, callCommand } from '@milkdown/kit/utils'
 import { Milkdown, useEditor } from '@milkdown/react'
 import type { TextLintMessageEvent } from './schema'
 import { worker } from './service-worker'
 // @ts-ignore
 import 'zenn-content-css'
+import { Bold, Italic, ToggleRight } from 'lucide-react'
 
 const textlintPluginKey = new PluginKey<DecorationSet>('textlint')
 
@@ -56,6 +61,22 @@ export const Editor = () => {
 			.use(listener)
 			.use(textlintPlugin)
 	})
+
+	const handleStrong = () => {
+		const editor = get()
+		if (!editor) {
+			return
+		}
+		editor.action(callCommand(toggleStrongCommand.key))
+	}
+
+	const handleItalic = () => {
+		const editor = get()
+		if (!editor) {
+			return
+		}
+		editor.action(callCommand(toggleEmphasisCommand.key))
+	}
 
 	worker.onmessage = (event: TextLintMessageEvent) => {
 		if (event.data.command === 'lint') {
@@ -109,8 +130,26 @@ export const Editor = () => {
 	}
 
 	return (
-		<div className="znc bg-neutral-100 border border-neutral-200 rounded-b-md shadow px-4 py-2 outline:none">
-			<Milkdown />
+		<div>
+			<div className="flex gap-2 flex-wrap">
+				<button
+					type="button"
+					onClick={handleStrong}
+					className="p-1 rounded-sm hover:bg-neutral-100"
+				>
+					<Bold strokeWidth={1} stroke="currentcolor" />
+				</button>
+				<button
+					type="button"
+					onClick={handleItalic}
+					className="p-1 rounded-sm hover:bg-neutral-100"
+				>
+					<Italic strokeWidth={1} stroke="currentcolor" />
+				</button>
+			</div>
+			<div className="znc mt-2 bg-neutral-100 border border-neutral-200 rounded-b-md shadow px-4 py-2 outline:none">
+				<Milkdown />
+			</div>
 		</div>
 	)
 }
