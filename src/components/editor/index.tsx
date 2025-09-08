@@ -18,7 +18,7 @@ import type { TextLintMessageEvent } from './schema'
 import { worker } from './service-worker'
 // @ts-ignore
 import 'zenn-content-css'
-import { Bold, Italic, ToggleRight } from 'lucide-react'
+import { Bold, Italic } from 'lucide-react'
 
 const textlintPluginKey = new PluginKey<DecorationSet>('textlint')
 
