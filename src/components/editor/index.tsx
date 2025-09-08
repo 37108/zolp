@@ -16,9 +16,11 @@ import { $prose, callCommand } from '@milkdown/kit/utils'
 import { Milkdown, useEditor } from '@milkdown/react'
 import type { TextLintMessageEvent } from './schema'
 import { worker } from './service-worker'
+// biome-ignore lint/suspicious/noTsIgnore: not problem
 // @ts-ignore
 import 'zenn-content-css'
 import { Bold, Italic } from 'lucide-react'
+import { cn } from '../../utils/cn'
 
 const textlintPluginKey = new PluginKey<DecorationSet>('textlint')
 
@@ -115,7 +117,7 @@ export const Editor = () => {
 								position + message.column - 1,
 								position + message.column + 1,
 								{
-									class: 'border-b border-red-300',
+									class: cn('border-b', 'border-red-300'),
 									title: message.message,
 								},
 							),
@@ -130,23 +132,35 @@ export const Editor = () => {
 
 	return (
 		<div>
-			<div className="flex gap-2 flex-wrap">
+			<div className={cn('flex', 'gap-2', 'flex-wrap')}>
 				<button
 					type="button"
 					onClick={handleStrong}
-					className="p-1 rounded-sm hover:bg-neutral-100"
+					className={cn('p-1', 'rounded-sm', 'hover:bg-neutral-100')}
 				>
 					<Bold strokeWidth={1} stroke="currentcolor" />
 				</button>
 				<button
 					type="button"
 					onClick={handleItalic}
-					className="p-1 rounded-sm hover:bg-neutral-100"
+					className={cn('p-1', 'rounded-sm', 'hover:bg-neutral-100')}
 				>
 					<Italic strokeWidth={1} stroke="currentcolor" />
 				</button>
 			</div>
-			<div className="znc mt-2 bg-neutral-100 border border-neutral-200 rounded-b-md shadow px-4 py-2 outline:none">
+			<div
+				className={cn(
+					'znc',
+					'mt-2',
+					'px-4',
+					'py-2',
+					'bg-neutral-100',
+					'border',
+					'border-neutral-200',
+					'rounded-b-md',
+					'shadow',
+				)}
+			>
 				<Milkdown />
 			</div>
 		</div>
