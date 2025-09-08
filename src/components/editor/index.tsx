@@ -124,7 +124,7 @@ export const Editor = () => {
 	}
 
 	return (
-		<div className="bg-neutral-100  py-2 px-4 rounded-md border border-neutral-300 shadow-xl">
+		<div className="bg-neutral-100  py-2 px-4 rounded-md border border-neutral-300">
 			<Milkdown />
 		</div>
 	)
