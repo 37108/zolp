@@ -7,3 +7,11 @@ html {
 		"Zen Kaku Gothic Antique" sans-serif;
 	font-optical-sizing: auto;
 }
+
+.ProseMirror:focus {
+	outline: none;
+}
+
+.ProseMirror {
+	min-height: 24rem;
+}

@@ -1,5 +1,4 @@
 import {
-	defaultValueCtx,
 	editorViewCtx,
 	Editor as MilkdownEditor,
 	rootCtx,
@@ -7,22 +6,14 @@ import {
 } from '@milkdown/kit/core'
 import { listener, listenerCtx } from '@milkdown/kit/plugin/listener'
 import { commonmark } from '@milkdown/kit/preset/commonmark'
-import { Milkdown, useEditor } from '@milkdown/react'
-import type { TextLintMessageEvent } from './schema'
-import { worker } from './service-worker'
-import '@milkdown/crepe/theme/common/style.css'
 import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
 import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
 import { $prose } from '@milkdown/kit/utils'
-
-const markdown = `textlint の導入サンプル
-
-<br />
-
-
-テキストを編集して入力してください
-
-`
+import { Milkdown, useEditor } from '@milkdown/react'
+import type { TextLintMessageEvent } from './schema'
+import { worker } from './service-worker'
+// @ts-ignore
+import 'zenn-content-css'
 
 const textlintPluginKey = new PluginKey<DecorationSet>('textlint')
 
@@ -51,7 +42,6 @@ export const Editor = () => {
 		return MilkdownEditor.make()
 			.config((ctx) => {
 				ctx.set(rootCtx, root)
-				ctx.set(defaultValueCtx, markdown)
 				ctx.get(listenerCtx).updated((ctx) => {
 					const editorView = ctx.get(editorViewCtx)
 					const serializer = ctx.get(serializerCtx)
@@ -119,7 +109,7 @@ export const Editor = () => {
 	}
 
 	return (
-		<div className="bg-neutral-100  py-2 px-4 rounded-md border border-neutral-300">
+		<div className="znc bg-neutral-100 border border-neutral-200 rounded-b-md shadow px-4 py-2 outline:none">
 			<Milkdown />
 		</div>
 	)
