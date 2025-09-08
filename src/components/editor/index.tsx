@@ -110,7 +110,6 @@ export const Editor = () => {
 				messages
 					.filter((message) => message.line === line + 1)
 					.forEach((message) => {
-						console.log(message)
 						decorations.push(
 							Decoration.inline(
 								position + message.column - 1,
